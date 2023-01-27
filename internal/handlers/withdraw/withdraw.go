@@ -1,4 +1,4 @@
-package handlers
+package withdraw
 
 import (
 	"encoding/json"
@@ -7,13 +7,12 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/size12/gophermart/internal/models"
 	"github.com/size12/gophermart/internal/storage"
 )
 
-func RegisterHandler(s storage.Storage) http.HandlerFunc {
+func WithdrawHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 
@@ -31,30 +30,34 @@ func RegisterHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		user := models.User{}
+		withdrawal := models.Withdraw{}
 
-		err = json.Unmarshal(resBody, &user)
+		err = json.Unmarshal(resBody, &withdrawal)
 		if err != nil {
 			http.Error(w, "wrong body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		userCookie, err := s.AddUser(r.Context(), user)
+		user := r.Context().Value("user").(models.User)
 
-		if errors.Is(err, storage.ErrLoginExists) {
-			http.Error(w, "login already exists", http.StatusConflict)
+		err = s.Withdraw(r.Context(), user, withdrawal)
+
+		if errors.Is(err, storage.ErrNoMoney) {
+			http.Error(w, "not enough money", http.StatusPaymentRequired)
+			return
+		}
+
+		if errors.Is(err, storage.ErrBadOrderNum) {
+			http.Error(w, "wrong order number", http.StatusUnprocessableEntity)
 			return
 		}
 
 		if err != nil {
-			log.Println("Failed add user:", err)
+			log.Println("Can't withdraw money:", err)
 			http.Error(w, "server error", http.StatusInternalServerError)
 			return
 		}
 
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "userCookie", Value: userCookie, Expires: expiration, Path: "/"}
-		http.SetCookie(w, &cookie)
 		w.WriteHeader(http.StatusOK)
 	}
 }

@@ -19,7 +19,7 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 				return
 			}
 
-			userCookie, err := r.Cookie("userID")
+			userCookie, err := r.Cookie("userCookie")
 
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)

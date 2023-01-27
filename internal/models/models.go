@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type User struct {
 	ID        int
@@ -12,8 +14,26 @@ type User struct {
 }
 
 type Order struct {
-	UserID int
-	Number string
-	Status string
-	Time   time.Time
+	UserID    int
+	Number    string
+	Status    string
+	EventTime time.Time
+}
+
+type Balance struct {
+	Current   int `json:"current"`
+	Withdrawn int `json:"withdrawn"`
+}
+
+type Withdraw struct {
+	Order int       `json:"order,string"`
+	Sum   int       `json:"sum"`
+	Time  EventTime `json:"processed_at,string"`
+}
+
+type EventTime time.Time
+
+func (t EventTime) MarshalJSON() ([]byte, error) {
+	newTime := time.Time(t)
+	return newTime.MarshalJSON()
 }

@@ -1,10 +1,10 @@
-package handlers
+package auth
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -13,7 +13,7 @@ import (
 	"github.com/size12/gophermart/internal/storage"
 )
 
-func LoginHandler(s storage.Storage) http.HandlerFunc {
+func RegisterHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 
@@ -31,27 +31,29 @@ func LoginHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		reqUser := models.User{}
+		user := models.User{}
 
-		err = json.Unmarshal(resBody, &reqUser)
+		err = json.Unmarshal(resBody, &user)
 		if err != nil {
 			http.Error(w, "wrong body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		user, err := s.GetUser(r.Context(), "login", reqUser.Login)
+		userCookie, err := s.AddUser(r.Context(), user)
 
-		h := sha256.New()
-		h.Write([]byte(reqUser.Login + reqUser.Password))
-		hash := hex.EncodeToString(h.Sum(nil))
+		if errors.Is(err, storage.ErrLoginExists) {
+			http.Error(w, "login already exists", http.StatusConflict)
+			return
+		}
 
-		if hash != user.Password {
-			http.Error(w, "wrong credentials", http.StatusUnauthorized)
+		if err != nil {
+			log.Println("Failed add user:", err)
+			http.Error(w, "server error", http.StatusInternalServerError)
 			return
 		}
 
 		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "userCookie", Value: user.Cookie, Expires: expiration, Path: "/"}
+		cookie := http.Cookie{Name: "userCookie", Value: userCookie, Expires: expiration, Path: "/"}
 		http.SetCookie(w, &cookie)
 		w.WriteHeader(http.StatusOK)
 	}

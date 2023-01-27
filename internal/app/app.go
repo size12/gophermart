@@ -1,6 +1,15 @@
 package app
 
-import "github.com/size12/gophermart/internal/config"
+import (
+	"log"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/size12/gophermart/internal/config"
+	"github.com/size12/gophermart/internal/handlers"
+	"github.com/size12/gophermart/internal/middleware"
+	"github.com/size12/gophermart/internal/storage"
+)
 
 type App struct {
 	Cfg config.Config
@@ -10,10 +19,20 @@ func NewApp(cfg config.Config) App {
 	return App{Cfg: cfg}
 }
 
-func (a *App) Run() error {
+func (app *App) Run() error {
+	r := chi.NewRouter()
+	s, err := storage.NewStorage(app.Cfg)
+	if err != nil {
+		log.Fatalln("Failed open storage:", err)
+	}
 
-	//подключение middleware и хэндлеров
-	//запуск сервера
+	server := http.Server{Addr: app.Cfg.RunAddress, Handler: r}
 
-	return nil
+	r.Use(middleware.RequireAuthentication(s))
+
+	r.MethodNotAllowed(handlers.NotAllowedHandler)
+	r.Post("/api/user/register", handlers.RegisterHandler(s))
+	r.Post("/api/user/login", handlers.LoginHandler(s))
+
+	return server.ListenAndServe()
 }

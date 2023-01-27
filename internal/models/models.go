@@ -14,10 +14,11 @@ type User struct {
 }
 
 type Order struct {
-	UserID    int
-	Number    string
-	Status    string
-	EventTime time.Time
+	UserID    int       `json:"-"`
+	Number    int       `json:"number,string"`
+	Status    string    `json:"status"`
+	Accrual   int       `json:"accrual,omitempty"`
+	EventTime time.Time `json:"uploaded_at"`
 }
 
 type Balance struct {
@@ -28,7 +29,7 @@ type Balance struct {
 type Withdraw struct {
 	Order int       `json:"order,string"`
 	Sum   int       `json:"sum"`
-	Time  EventTime `json:"processed_at,string"`
+	Time  EventTime `json:"processed_at"`
 }
 
 type EventTime time.Time

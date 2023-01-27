@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/size12/gophermart/internal/handlers/auth"
+	"github.com/size12/gophermart/internal/handlers/orders"
 	"github.com/size12/gophermart/internal/handlers/withdraw"
 	"github.com/size12/gophermart/internal/storage"
 )
@@ -22,4 +23,12 @@ func NewWithdrawHandler(s storage.Storage) http.HandlerFunc {
 
 func NewWithdrawalHistoryHandler(s storage.Storage) http.HandlerFunc {
 	return withdraw.WithdrawalHistoryHandler(s)
+}
+
+func NewOrderHandler(s storage.Storage) http.HandlerFunc {
+	return orders.OrderHandler(s)
+}
+
+func NewOrdersHistoryHandler(s storage.Storage) http.HandlerFunc {
+	return orders.OrdersHistoryHandler(s)
 }

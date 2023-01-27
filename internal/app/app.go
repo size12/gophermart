@@ -35,6 +35,9 @@ func (app *App) Run() error {
 	r.Post("/api/user/register", handlers.NewRegisterHandler(s))
 	r.Post("/api/user/login", handlers.NewLoginHandler(s))
 
+	r.Post("/api/user/orders", handlers.NewOrderHandler(s))
+	r.Get("/api/user/orders", handlers.NewOrdersHistoryHandler(s))
+
 	r.Post("/api/user/withdraw", handlers.NewWithdrawHandler(s))
 	r.Get("/api/user/withdrawals", handlers.NewWithdrawalHistoryHandler(s))
 

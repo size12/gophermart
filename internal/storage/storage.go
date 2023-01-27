@@ -14,11 +14,12 @@ import (
 // не передаю все данные только в контекстах, так как другому программисту будет сложно понять
 // что именно нужно данным методам. А так более понятно выглядит.
 type Storage interface {
-	GetUser(ctx context.Context, key, value string) (models.User, error)
+	GetUser(ctx context.Context, search, value string) (models.User, error)
 	AddUser(ctx context.Context, user models.User) (string, error)
 	Withdraw(ctx context.Context, user models.User, order models.Withdraw) error
 	WithdrawalHistory(ctx context.Context, user models.User) ([]models.Withdraw, error)
-	//тут будут ещё методы
+	AddOrder(ctx context.Context, order models.Order) error
+	OrdersHistory(ctx context.Context, user models.User) ([]models.Order, error)
 }
 
 func NewStorage(cfg config.Config) (Storage, error) {

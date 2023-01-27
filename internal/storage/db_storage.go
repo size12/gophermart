@@ -38,7 +38,7 @@ func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 		return s, err
 	}
 
-	_, err = DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS orders (userid INT, num BIGINT, stat VARCHAR(255), uploaded TIMESTAMP)`)
+	_, err = DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS orders (userid INT, num BIGINT, stat VARCHAR(255), accrual INT, uploaded TIMESTAMP)`)
 	if err != nil {
 		log.Println("Failed create 'orders' table:", err)
 		return s, err
@@ -55,7 +55,7 @@ func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 	return s, nil
 }
 
-func (s *DBStorage) GetUser(ctx context.Context, key, value string) (models.User, error) {
+func (s *DBStorage) GetUser(ctx context.Context, search, value string) (models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -63,7 +63,7 @@ func (s *DBStorage) GetUser(ctx context.Context, key, value string) (models.User
 
 	var row *sql.Row
 
-	switch key {
+	switch search {
 	case "cookie":
 		query := `SELECT * FROM users WHERE cookie = $1`
 		row = s.DB.QueryRowContext(ctx, query, value)
@@ -179,4 +179,67 @@ func (s *DBStorage) WithdrawalHistory(ctx context.Context, user models.User) ([]
 	}
 
 	return withdrawals, nil
+}
+
+func (s *DBStorage) AddOrder(ctx context.Context, order models.Order) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	if !luhn.Valid(order.Number) {
+		return ErrBadOrderNum
+	}
+
+	row := s.DB.QueryRowContext(ctx, `SELECT userid FROM orders WHERE num = $1 LIMIT 1`, order.Number)
+
+	orderDB := models.Order{}
+
+	err := row.Scan(&orderDB.UserID)
+
+	if err == nil {
+		if orderDB.UserID == order.UserID {
+			return ErrAlreadyLoaded
+		} else {
+			return ErrLoadedByOtherUser
+		}
+	}
+
+	_, err = s.DB.ExecContext(ctx, `INSERT INTO orders (userid, num, stat, accrual, uploaded) VALUES ($1, $2, $3, $4, $5)`, order.UserID, order.Number, "NEW", 0, time.Now())
+
+	if err != nil {
+		log.Println("Failed insert new order into orders:", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *DBStorage) OrdersHistory(ctx context.Context, user models.User) ([]models.Order, error) {
+	var orders []models.Order
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	rows, err := s.DB.QueryContext(ctx, "SELECT num, stat, accrual, uploaded FROM orders WHERE userid = $1 ORDER BY uploaded DESC ", user.ID)
+
+	if err != nil {
+		log.Println("Can't get withdrawals history from DB:", err)
+		return orders, err
+	}
+
+	for rows.Next() {
+		order := models.Order{}
+		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.EventTime)
+		if err != nil {
+			log.Println("Error while scanning rows:", err)
+			return orders, err
+		}
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("Rows error:", err)
+		return orders, err
+	}
+
+	return orders, nil
 }

@@ -1,4 +1,4 @@
-package withdraw
+package orders
 
 import (
 	"encoding/json"
@@ -9,13 +9,13 @@ import (
 	"github.com/size12/gophermart/internal/storage"
 )
 
-func WithdrawalHistoryHandler(s storage.Storage) http.HandlerFunc {
+func OrdersHistoryHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := r.Context().Value("user").(models.User)
 
-		withdrawals, err := s.WithdrawalHistory(r.Context(), user)
+		withdrawals, err := s.OrdersHistory(r.Context(), user)
 		if err != nil {
-			log.Println("Can't get withdrawal history:", err)
+			log.Println("Can't get orders history:", err)
 			http.Error(w, "server error", http.StatusInternalServerError)
 			return
 		}
@@ -27,7 +27,7 @@ func WithdrawalHistoryHandler(s storage.Storage) http.HandlerFunc {
 
 		b, err := json.Marshal(withdrawals)
 		if err != nil {
-			log.Println("Can't marshal withdrawal history:", err)
+			log.Println("Can't marshal orders history:", err)
 			http.Error(w, "server error", http.StatusInternalServerError)
 			return
 		}

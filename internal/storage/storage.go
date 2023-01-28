@@ -20,6 +20,8 @@ type Storage interface {
 	WithdrawalHistory(ctx context.Context, user models.User) ([]models.Withdraw, error)
 	AddOrder(ctx context.Context, order models.Order) error
 	OrdersHistory(ctx context.Context, user models.User) ([]models.Order, error)
+	GetOrdersForUpdate(ctx context.Context) ([]models.Order, error)
+	UpdateOrders(ctx context.Context, orders []models.Order) error
 }
 
 func NewStorage(cfg config.Config) (Storage, error) {

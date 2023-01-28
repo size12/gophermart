@@ -9,30 +9,32 @@ type User struct {
 	Login     string `json:"login"`
 	Password  string `json:"password"`
 	Cookie    string
-	Balance   int
-	Withdrawn int
+	Balance   float64
+	Withdrawn float64
 }
 
 type Order struct {
 	UserID    int       `json:"-"`
 	Number    int       `json:"number,string"`
 	Status    string    `json:"status"`
-	Accrual   int       `json:"accrual,omitempty"`
+	Accrual   float64   `json:"accrual,omitempty"`
 	EventTime time.Time `json:"uploaded_at"`
 }
 
 type Balance struct {
-	Current   int `json:"current"`
-	Withdrawn int `json:"withdrawn"`
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
 }
 
 type Withdraw struct {
 	Order int       `json:"order,string"`
-	Sum   int       `json:"sum"`
+	Sum   float64   `json:"sum"`
 	Time  EventTime `json:"processed_at"`
 }
 
 type EventTime time.Time
+type CtxUserKey struct {
+}
 
 func (t EventTime) MarshalJSON() ([]byte, error) {
 	newTime := time.Time(t)

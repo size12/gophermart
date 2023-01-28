@@ -38,7 +38,7 @@ func WithdrawHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		user := r.Context().Value("user").(models.User)
+		user := r.Context().Value(models.CtxUserKey{}).(models.User)
 
 		err = s.Withdraw(r.Context(), user, withdrawal)
 

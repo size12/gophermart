@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/size12/gophermart/internal/models"
 	"github.com/size12/gophermart/internal/storage"
 )
 
@@ -39,7 +40,7 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "user", user)
+			ctx := context.WithValue(r.Context(), models.CtxUserKey{}, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

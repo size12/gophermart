@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/size12/gophermart/accrual_system"
 	"github.com/size12/gophermart/internal/config"
 	"github.com/size12/gophermart/internal/handlers"
 	"github.com/size12/gophermart/internal/middleware"
@@ -42,5 +44,10 @@ func (app *App) Run() error {
 	r.Get("/api/user/withdrawals", handlers.NewWithdrawalHistoryHandler(s))
 
 	r.Get("/api/user/balance", handlers.GetBalanceHandler(s))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go UpdateOrders(ctx, s, accrual_system.NewAccrualSystem(app.Cfg))
+
 	return server.ListenAndServe()
 }

@@ -12,7 +12,7 @@ import (
 func GetBalanceHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		user := r.Context().Value("user").(models.User)
+		user := r.Context().Value(models.CtxUserKey{}).(models.User)
 
 		balance := models.Balance{
 			Current:   user.Balance,

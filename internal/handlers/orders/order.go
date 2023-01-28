@@ -37,7 +37,7 @@ func OrderHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		user := r.Context().Value("user").(models.User)
+		user := r.Context().Value(models.CtxUserKey{}).(models.User)
 
 		order := models.Order{
 			UserID:    user.ID,

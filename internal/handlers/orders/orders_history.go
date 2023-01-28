@@ -11,7 +11,7 @@ import (
 
 func OrdersHistoryHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := r.Context().Value("user").(models.User)
+		user := r.Context().Value(models.CtxUserKey{}).(models.User)
 
 		withdrawals, err := s.OrdersHistory(r.Context(), user)
 		if err != nil {

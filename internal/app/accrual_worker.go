@@ -5,12 +5,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/size12/gophermart/accrual_system"
+	"github.com/size12/gophermart/accrualsystem"
 	"github.com/size12/gophermart/internal/models"
 	"github.com/size12/gophermart/internal/storage"
 )
 
-func UpdateOrders(ctx context.Context, s storage.Storage, accrual accrual_system.AccrualSystem) {
+func UpdateOrders(ctx context.Context, s storage.Storage, accrual accrualsystem.AccrualSystem) {
 	errCnt := 0
 	for {
 		select {

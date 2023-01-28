@@ -1,4 +1,4 @@
-package accrual_system
+package accrualsystem
 
 import (
 	"github.com/size12/gophermart/internal/config"

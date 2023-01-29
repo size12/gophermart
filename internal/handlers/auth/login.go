@@ -1,21 +1,24 @@
 package auth
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/size12/gophermart/internal/models"
+	"github.com/size12/gophermart/internal/entity"
 	"github.com/size12/gophermart/internal/storage"
 )
 
 func LoginHandler(s storage.Storage) http.HandlerFunc {
+	cfg := s.GetConfig()
 	return func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 
@@ -33,7 +36,7 @@ func LoginHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		reqUser := models.User{}
+		reqUser := entity.User{}
 
 		err = json.Unmarshal(resBody, &reqUser)
 		if err != nil {
@@ -63,8 +66,19 @@ func LoginHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
+		sessionID, err := storage.GenerateRandom()
+		if err != nil {
+			http.Error(w, "server error", http.StatusInternalServerError)
+			return
+		}
+
+		h = hmac.New(sha256.New, cfg.SecretKey)
+		h.Write([]byte(sessionID + fmt.Sprint(user.ID)))
+		userCookie := append([]byte(sessionID), h.Sum(nil)...)
+		userCookie = append(userCookie, []byte(fmt.Sprint(user.ID))...)
+
 		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "userCookie", Value: user.Cookie, Expires: expiration, Path: "/"}
+		cookie := http.Cookie{Name: "userCookie", Value: hex.EncodeToString(userCookie), Expires: expiration, Path: "/"}
 		http.SetCookie(w, &cookie)
 		w.WriteHeader(http.StatusOK)
 	}

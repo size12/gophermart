@@ -2,11 +2,11 @@ package accrualsystem
 
 import (
 	"github.com/size12/gophermart/internal/config"
-	"github.com/size12/gophermart/internal/models"
+	"github.com/size12/gophermart/internal/entity"
 )
 
 type AccrualSystem interface {
-	GetOrderUpdates(number int) (models.Order, error)
+	GetOrderUpdates(number int) (entity.Order, error)
 }
 
 func NewAccrualSystem(cfg config.Config) AccrualSystem {

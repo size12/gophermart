@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/size12/gophermart/internal/config"
-	"github.com/size12/gophermart/internal/models"
+	"github.com/size12/gophermart/internal/entity"
 )
 
 type ExAccrualSystem struct {
@@ -19,8 +19,8 @@ func NewExAccrualSystem(cfg config.Config) *ExAccrualSystem {
 	return &ExAccrualSystem{BaseURL: cfg.AccrualSystemAddress}
 }
 
-func (s *ExAccrualSystem) GetOrderUpdates(number int) (models.Order, error) {
-	order := models.Order{}
+func (s *ExAccrualSystem) GetOrderUpdates(number int) (entity.Order, error) {
+	order := entity.Order{}
 
 	path := "/api/orders/"
 	url := fmt.Sprintf("%s%s%v", s.BaseURL, path, number)

@@ -5,13 +5,13 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/size12/gophermart/internal/models"
+	"github.com/size12/gophermart/internal/entity"
 	"github.com/size12/gophermart/internal/storage"
 )
 
-func OrdersHistoryHandler(s storage.Storage) http.HandlerFunc {
+func HistoryHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := r.Context().Value(models.CtxUserKey{}).(models.User)
+		user := r.Context().Value(entity.CtxUserKey{}).(entity.User)
 
 		withdrawals, err := s.OrdersHistory(r.Context(), user)
 		if err != nil {

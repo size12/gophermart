@@ -30,5 +30,5 @@ func NewOrderHandler(s storage.Storage) http.HandlerFunc {
 }
 
 func NewOrdersHistoryHandler(s storage.Storage) http.HandlerFunc {
-	return orders.OrdersHistoryHandler(s)
+	return orders.HistoryHandler(s)
 }

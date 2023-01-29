@@ -2,14 +2,15 @@ package withdraw
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 
-	"github.com/size12/gophermart/internal/models"
+	"github.com/size12/gophermart/internal/entity"
 	"github.com/size12/gophermart/internal/storage"
+	"github.com/theplant/luhn"
 )
 
 func WithdrawHandler(s storage.Storage) http.HandlerFunc {
@@ -30,7 +31,7 @@ func WithdrawHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		withdrawal := models.Withdraw{}
+		withdrawal := entity.Withdraw{}
 
 		err = json.Unmarshal(resBody, &withdrawal)
 		if err != nil {
@@ -38,19 +39,26 @@ func WithdrawHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		user := r.Context().Value(models.CtxUserKey{}).(models.User)
+		userID := r.Context().Value(entity.CtxUserKey{}).(entity.User).ID
 
-		err = s.Withdraw(r.Context(), user, withdrawal)
+		user, err := s.GetUser(r.Context(), "id", fmt.Sprint(userID))
 
-		if errors.Is(err, storage.ErrNoMoney) {
+		if err != nil {
+			http.Error(w, "wrong body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if user.Balance < withdrawal.Sum {
 			http.Error(w, "not enough money", http.StatusPaymentRequired)
 			return
 		}
 
-		if errors.Is(err, storage.ErrBadOrderNum) {
+		if !luhn.Valid(withdrawal.Order) {
 			http.Error(w, "wrong order number", http.StatusUnprocessableEntity)
 			return
 		}
+
+		err = s.Withdraw(r.Context(), user, withdrawal)
 
 		if err != nil {
 			log.Println("Can't withdraw money:", err)

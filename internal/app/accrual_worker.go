@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/size12/gophermart/accrualsystem"
-	"github.com/size12/gophermart/internal/models"
+	"github.com/size12/gophermart/internal/entity"
 	"github.com/size12/gophermart/internal/storage"
 )
 
@@ -18,7 +18,7 @@ func UpdateOrders(ctx context.Context, s storage.Storage, accrual accrualsystem.
 			return
 		default:
 			time.Sleep(2 * time.Second)
-			var ordersToUpdate []models.Order
+			var ordersToUpdate []entity.Order
 			orders, err := s.GetOrdersForUpdate(ctx)
 			if err != nil {
 				log.Println("Can't get orders for update:", err)

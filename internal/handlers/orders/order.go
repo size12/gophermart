@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/size12/gophermart/internal/models"
+	"github.com/size12/gophermart/internal/entity"
 	"github.com/size12/gophermart/internal/storage"
+	"github.com/theplant/luhn"
 )
 
 func OrderHandler(s storage.Storage) http.HandlerFunc {
@@ -37,21 +38,21 @@ func OrderHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		user := r.Context().Value(models.CtxUserKey{}).(models.User)
+		user := r.Context().Value(entity.CtxUserKey{}).(entity.User)
 
-		order := models.Order{
+		order := entity.Order{
 			UserID:    user.ID,
 			Number:    orderNumber,
 			Status:    "NEW",
 			EventTime: time.Now(),
 		}
 
-		err = s.AddOrder(r.Context(), order)
-
-		if errors.Is(err, storage.ErrBadOrderNum) {
+		if !luhn.Valid(order.Number) {
 			http.Error(w, "wrong order number", http.StatusUnprocessableEntity)
 			return
 		}
+
+		err = s.AddOrder(r.Context(), order)
 
 		if errors.Is(err, storage.ErrAlreadyLoaded) {
 			w.WriteHeader(http.StatusOK)

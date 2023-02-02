@@ -40,6 +40,8 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 			}
 
 			sign := append([]byte{cookie[8]}, cookie[9:40]...)
+			//sign := cookie[8:40]
+
 			data := append(cookie[:8], cookie[40:]...)
 
 			h := hmac.New(sha256.New, cfg.SecretKey)

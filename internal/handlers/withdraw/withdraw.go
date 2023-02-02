@@ -2,7 +2,7 @@ package withdraw
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -39,19 +39,7 @@ func WithdrawHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		userID := r.Context().Value(entity.CtxUserKey{}).(entity.User).ID
-
-		user, err := s.GetUser(r.Context(), "id", fmt.Sprint(userID))
-
-		if err != nil {
-			http.Error(w, "wrong body: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		if user.Balance < withdrawal.Sum {
-			http.Error(w, "not enough money", http.StatusPaymentRequired)
-			return
-		}
+		user := r.Context().Value(entity.CtxUserKey{}).(entity.User)
 
 		if !luhn.Valid(withdrawal.Order) {
 			http.Error(w, "wrong order number", http.StatusUnprocessableEntity)
@@ -59,6 +47,11 @@ func WithdrawHandler(s storage.Storage) http.HandlerFunc {
 		}
 
 		err = s.Withdraw(r.Context(), user, withdrawal)
+
+		if errors.Is(err, storage.ErrNoMoney) {
+			http.Error(w, "Insufficient balance", http.StatusUnprocessableEntity)
+			return
+		}
 
 		if err != nil {
 			log.Println("Can't withdraw money:", err)

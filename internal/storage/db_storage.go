@@ -117,21 +117,21 @@ func (s *DBStorage) Withdraw(ctx context.Context, user entity.User, withdrawal e
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	user.Balance -= withdrawal.Sum
-	user.Withdrawn += withdrawal.Sum
-
-	_, err := s.DB.ExecContext(ctx, `UPDATE users SET balance = $1 WHERE id = $2`, user.Balance, user.ID)
+	result, err := s.DB.ExecContext(ctx, `UPDATE users SET balance = balance - $1, withdrawn = withdrawn + $1 WHERE id = $2 AND balance >= $1`, withdrawal.Sum, user.ID)
 
 	if err != nil {
-		log.Println("Failed update balance after withdraw:", err)
+		log.Println("Failed withdraw:", err)
 		return err
 	}
 
-	_, err = s.DB.ExecContext(ctx, `UPDATE users SET withdrawn = $1 WHERE id = $2`, user.Withdrawn, user.ID)
-
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		log.Println("Failed update withdrawn after withdraw:", err)
+		log.Println("Failed get affected rows")
 		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrNoMoney
 	}
 
 	_, err = s.DB.ExecContext(ctx, `INSERT INTO withdrawals (userid, num, amount, processed) VALUES ($1, $2, $3, $4)`, user.ID, withdrawal.Order, withdrawal.Sum, time.Now())

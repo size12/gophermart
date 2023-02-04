@@ -15,12 +15,13 @@ import (
 )
 
 type DBStorage struct {
-	Cfg config.Config
-	DB  *sql.DB
+	Cfg   config.Config
+	DB    *sql.DB
+	Queue Queue
 }
 
 func NewDBStorage(cfg config.Config) (*DBStorage, error) {
-	s := &DBStorage{Cfg: cfg}
+	s := &DBStorage{Cfg: cfg, Queue: NewSliceQueue()}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -51,6 +52,19 @@ func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 	}
 
 	s.DB = DB
+
+	orders, err := s.GetOrdersForUpdate(ctx)
+
+	if err != nil {
+		log.Println("Failed get orders for update on DB start")
+		return s, err
+	}
+
+	err = s.Queue.PushFrontOrders(orders...)
+	if err != nil {
+		log.Println("Failed push orders to queue on DB start")
+		return s, err
+	}
 
 	return s, nil
 }
@@ -200,6 +214,12 @@ func (s *DBStorage) AddOrder(ctx context.Context, order entity.Order) error {
 		return err
 	}
 
+	err = s.Queue.PushBackOrders(order)
+	if err != nil {
+		log.Println("Failed push order to queue")
+		return err
+	}
+
 	return nil
 }
 
@@ -232,6 +252,10 @@ func (s *DBStorage) OrdersHistory(ctx context.Context, user entity.User) ([]enti
 	}
 
 	return orders, nil
+}
+
+func (s *DBStorage) GetOrderForUpdate() (entity.Order, error) {
+	return s.Queue.GetOrder()
 }
 
 func (s *DBStorage) GetOrdersForUpdate(ctx context.Context) ([]entity.Order, error) {
@@ -310,4 +334,12 @@ func (s *DBStorage) UpdateOrders(ctx context.Context, orders []entity.Order) err
 
 func (s *DBStorage) GetConfig() config.Config {
 	return s.Cfg
+}
+
+func (s *DBStorage) PushFrontOrders(orders ...entity.Order) error {
+	return s.Queue.PushFrontOrders(orders...)
+}
+
+func (s *DBStorage) PushBackOrders(orders ...entity.Order) error {
+	return s.Queue.PushBackOrders(orders...)
 }

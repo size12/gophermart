@@ -6,7 +6,7 @@ import (
 )
 
 type AccrualSystem interface {
-	GetOrderUpdates(number int) (entity.Order, error)
+	GetOrderUpdates(order entity.Order) (entity.Order, int64, error)
 }
 
 func NewAccrualSystem(cfg config.Config) AccrualSystem {

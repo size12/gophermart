@@ -47,7 +47,8 @@ func (app *App) Run() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go UpdateOrders(ctx, s, accrualsystem.NewAccrualSystem(app.Cfg))
+
+	go NewWorkerPool(ctx, s, accrualsystem.NewAccrualSystem(app.Cfg))
 
 	return server.ListenAndServe()
 }

@@ -19,8 +19,11 @@ type Storage interface {
 	AddOrder(ctx context.Context, order entity.Order) error
 	OrdersHistory(ctx context.Context, user entity.User) ([]entity.Order, error)
 	GetOrdersForUpdate(ctx context.Context) ([]entity.Order, error)
+	GetOrderForUpdate() (entity.Order, error)
 	UpdateOrders(ctx context.Context, orders []entity.Order) error
 	GetConfig() config.Config
+	PushFrontOrders(orders ...entity.Order) error
+	PushBackOrders(orders ...entity.Order) error
 }
 
 func NewStorage(cfg config.Config) (Storage, error) {

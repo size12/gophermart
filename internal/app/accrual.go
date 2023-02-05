@@ -78,7 +78,7 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 			job, err = s.GetOrderForUpdate()
 
 			if errors.Is(err, storage.ErrEmptyQueue) {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(5 * time.Second)
 				continue
 			}
 
@@ -104,7 +104,6 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 				continue
 			}
 			if errors.Is(result.Err, storage.ErrNothingChanged) {
-				fmt.Println("Nothing changed")
 				s.PushBackOrders(result.Order)
 				continue
 			}

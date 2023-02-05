@@ -78,7 +78,7 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 			job, err = s.GetOrderForUpdate()
 
 			if errors.Is(err, storage.ErrEmptyQueue) {
-				time.Sleep(1 * time.Second)
+				time.Sleep(500 * time.Millisecond)
 				continue
 			}
 

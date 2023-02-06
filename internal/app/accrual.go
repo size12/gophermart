@@ -41,16 +41,18 @@ func (w *WorkerPool) StartWorker() {
 			}
 
 			if newOrderInfo.Status != work.Status {
+				fmt.Println("Status changed")
 				work.Accrual = newOrderInfo.Accrual
 				work.Status = newOrderInfo.Status
 				w.results <- JobResult{
-					Order: work,
+					Order: newOrderInfo,
 					Err:   nil,
 					Sleep: sleep,
 				}
 			} else {
+				fmt.Println("Nothing changes")
 				w.results <- JobResult{
-					Order: work,
+					Order: newOrderInfo,
 					Err:   storage.ErrNothingChanged,
 					Sleep: sleep,
 				}

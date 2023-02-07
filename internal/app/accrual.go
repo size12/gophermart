@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/size12/gophermart/accrualsystem"
@@ -12,10 +13,16 @@ import (
 	"github.com/size12/gophermart/internal/storage"
 )
 
+type Timer struct {
+	Time time.Time
+	*sync.RWMutex
+}
+
 type WorkerPool struct {
 	jobs    chan entity.Order
 	accrual accrualsystem.AccrualSystem
 	storage storage.Storage
+	timer   Timer
 }
 
 func (w *WorkerPool) StartWorker() {
@@ -23,15 +30,27 @@ func (w *WorkerPool) StartWorker() {
 		for {
 			work := <-w.jobs
 
+			w.timer.RLock()
+			timer := w.timer.Time
+			t := time.Until(timer)
+			w.timer.RUnlock()
+
+			if t.Milliseconds() > 0 {
+				time.Sleep(t)
+			}
+
 			newOrderInfo, sleep, err := w.accrual.GetOrderUpdates(work)
-			_ = sleep
 			if err != nil {
 				log.Println("Failed get update order info:", err)
 				w.storage.PushFrontOrders(work)
+				if sleep > 0 {
+					w.timer.Lock()
+					w.timer.Time = time.Now().Add(time.Duration(sleep) * time.Second)
+					w.timer.Unlock()
+				}
 			}
 
 			if newOrderInfo.Status != work.Status {
-				//fmt.Println("Status changed")
 				work.Accrual = newOrderInfo.Accrual
 				work.Status = newOrderInfo.Status
 				w.storage.UpdateOrders(context.Background(), work)
@@ -47,6 +66,10 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 		jobs:    make(chan entity.Order),
 		storage: s,
 		accrual: accrual,
+		timer: Timer{
+			Time:    time.Now(),
+			RWMutex: &sync.RWMutex{},
+		},
 	}
 
 	pool.StartWorker()

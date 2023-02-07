@@ -20,8 +20,8 @@ func NewExAccrualSystem(cfg config.Config) *ExAccrualSystem {
 	return &ExAccrualSystem{BaseURL: cfg.AccrualSystemAddress}
 }
 
-func (s *ExAccrualSystem) GetOrderUpdates(order entity.Order) (entity.Order, int64, error) {
-	var sleep int64 = 0
+func (s *ExAccrualSystem) GetOrderUpdates(order entity.Order) (entity.Order, int, error) {
+	sleep := 0
 
 	path := "/api/orders/"
 	url := fmt.Sprintf("%s%s%v", s.BaseURL, path, order.Number)
@@ -49,7 +49,7 @@ func (s *ExAccrualSystem) GetOrderUpdates(order entity.Order) (entity.Order, int
 		if err != nil {
 			return order, 0, err
 		}
-		return order, int64(res), err
+		return order, res, err
 	}
 
 	fmt.Println(r.StatusCode)

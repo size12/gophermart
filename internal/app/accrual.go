@@ -51,11 +51,8 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 
 	pool.StartWorker()
 
-	job := entity.Order{}
-	var err error
-
 	for {
-		job, err = s.GetOrderForUpdate()
+		job, err := s.GetOrderForUpdate()
 
 		if errors.Is(err, storage.ErrEmptyQueue) {
 			time.Sleep(1 * time.Second)

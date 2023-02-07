@@ -2,6 +2,7 @@ package orders
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -53,6 +54,8 @@ func OrderHandler(s storage.Storage) http.HandlerFunc {
 		}
 
 		err = s.AddOrder(r.Context(), order)
+
+		fmt.Println("added order:", order)
 
 		if errors.Is(err, storage.ErrAlreadyLoaded) {
 			w.WriteHeader(http.StatusOK)

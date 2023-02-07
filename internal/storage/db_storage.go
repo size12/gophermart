@@ -289,7 +289,7 @@ func (s *DBStorage) GetOrdersForUpdate(ctx context.Context) ([]entity.Order, err
 	return orders, err
 }
 
-func (s *DBStorage) UpdateOrders(ctx context.Context, orders []entity.Order) error {
+func (s *DBStorage) UpdateOrders(ctx context.Context, orders ...entity.Order) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 

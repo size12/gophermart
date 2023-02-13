@@ -40,16 +40,17 @@ func WithdrawHandler(s storage.Storage) http.HandlerFunc {
 		}
 
 		value := r.Context().Value(entity.CtxUserKey{})
-		var user entity.User
 
 		switch value.(type) {
 		case entity.User:
-			user = value.(entity.User)
+			break
 		default:
 			log.Println("Wrong value type in context")
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
+
+		user := value.(entity.User)
 
 		if !luhn.Valid(withdrawal.Order) {
 			http.Error(w, "wrong order number", http.StatusUnprocessableEntity)

@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 
 	"github.com/size12/gophermart/internal/config"
@@ -23,10 +25,14 @@ func NewExAccrualSystem(cfg config.Config) *ExAccrualSystem {
 func (s *ExAccrualSystem) GetOrderUpdates(order entity.Order) (entity.Order, int, error) {
 	sleep := 0
 
-	path := "/api/orders/"
-	url := fmt.Sprintf("%s%s%v", s.BaseURL, path, order.Number)
+	reqURL, err := url.Parse(s.BaseURL)
+	if err != nil {
+		log.Fatalln("Wrong accrual system URL:", err)
+	}
 
-	r, err := http.Get(url)
+	reqURL.Path = path.Join("/api/orders/", strconv.Itoa(order.Number))
+
+	r, err := http.Get(reqURL.String())
 	if err != nil {
 		log.Println("Can't get order updates from external API:", err)
 		return order, sleep, err

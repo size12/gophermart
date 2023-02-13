@@ -14,12 +14,12 @@ type Queue interface {
 
 type SliceQueue struct {
 	Orders []entity.Order
-	*sync.Mutex
+	*sync.RWMutex
 }
 
 func NewSliceQueue() *SliceQueue {
 	return &SliceQueue{
-		Mutex: &sync.Mutex{},
+		RWMutex: &sync.RWMutex{},
 	}
 }
 
@@ -38,8 +38,8 @@ func (q *SliceQueue) PushBackOrders(orders ...entity.Order) error {
 }
 
 func (q *SliceQueue) GetOrder() (entity.Order, error) {
-	q.Lock()
-	defer q.Unlock()
+	q.RLock()
+	defer q.RUnlock()
 	if len(q.Orders) > 0 {
 		order := q.Orders[0]
 		q.Orders = q.Orders[1:]

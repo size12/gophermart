@@ -57,11 +57,7 @@ func RegisterHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		sessionID, err := storage.GenerateRandom()
-		if err != nil {
-			http.Error(w, "server error", http.StatusInternalServerError)
-			return
-		}
+		sessionID := storage.GenerateRandom()
 
 		h := hmac.New(sha256.New, cfg.SecretKey)
 		h.Write([]byte(sessionID + fmt.Sprint(user.ID)))

@@ -17,9 +17,19 @@ func GetBalanceHandler(s storage.Storage) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 		defer cancel()
 
-		userID := r.Context().Value(entity.CtxUserKey{}).(entity.User).ID
+		value := r.Context().Value(entity.CtxUserKey{})
+		var user entity.User
 
-		user, err := s.GetUser(ctx, "id", fmt.Sprint(userID))
+		switch value.(type) {
+		case entity.User:
+			user = value.(entity.User)
+		default:
+			log.Println("Wrong value type in context")
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+
+		user, err := s.GetUser(ctx, "id", fmt.Sprint(user.ID))
 
 		if err != nil {
 			log.Println("Failed fetch balance:", err)

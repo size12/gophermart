@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/hex"
 	"math/rand"
 
 	"github.com/size12/gophermart/internal/config"
@@ -12,7 +13,7 @@ import (
 // не передаю все данные только в контекстах, так как другому программисту будет сложно понять
 // что именно нужно данным методам. А так более понятно выглядит.
 type Storage interface {
-	GetUser(ctx context.Context, search, value string) (entity.User, error)
+	GetUser(ctx context.Context, search SearchType, value string) (entity.User, error)
 	AddUser(ctx context.Context, user entity.User) (int, error)
 	Withdraw(ctx context.Context, user entity.User, order entity.Withdraw) error
 	WithdrawalHistory(ctx context.Context, user entity.User) ([]entity.Withdraw, error)
@@ -33,10 +34,18 @@ func NewStorage(cfg config.Config) (Storage, error) {
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func GenerateRandom() (string, error) {
-	b := make([]rune, 8)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+func GenerateRandom() string {
+	randomBytes := make([]byte, 32)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		panic(err)
 	}
-	return string(b), nil
+	return hex.EncodeToString(randomBytes)[:8]
 }
+
+type SearchType string
+
+const (
+	SearchByID    SearchType = "id"
+	SearchByLogin SearchType = "login"
+)

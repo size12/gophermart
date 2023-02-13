@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/size12/gophermart/accrualsystem"
+	"github.com/size12/gophermart/internal/accrualsystem"
 	"github.com/size12/gophermart/internal/entity"
 	"github.com/size12/gophermart/internal/storage"
 )
@@ -42,20 +42,30 @@ func (w *WorkerPool) StartWorker() {
 			newOrderInfo, sleep, err := w.accrual.GetOrderUpdates(work)
 			if err != nil {
 				log.Println("Failed get update order info:", err)
-				w.storage.PushFrontOrders(work)
+				err := w.storage.PushFrontOrders(work)
+				if err != nil {
+					log.Println("Failed push order in queue: ", err)
+				}
 				if sleep > 0 {
 					w.timer.Lock()
 					w.timer.Time = time.Now().Add(time.Duration(sleep) * time.Second)
 					w.timer.Unlock()
 				}
+				continue
 			}
 
 			if newOrderInfo.Status != work.Status {
 				work.Accrual = newOrderInfo.Accrual
 				work.Status = newOrderInfo.Status
-				w.storage.UpdateOrders(context.Background(), work)
+				err := w.storage.UpdateOrders(context.Background(), work)
+				if err != nil {
+					log.Println("Failed update order: ", err)
+				}
 			} else {
-				w.storage.PushBackOrders(work)
+				err := w.storage.PushBackOrders(work)
+				if err != nil {
+					log.Println("Failed push order in queue: ", err)
+				}
 			}
 		}
 	}()

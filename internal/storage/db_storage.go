@@ -23,7 +23,7 @@ type DBStorage struct {
 func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 	s := &DBStorage{Cfg: cfg, Queue: NewSliceQueue()}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.AwaitTime)
 	defer cancel()
 
 	DB, err := sql.Open("pgx", cfg.DataBaseURI)
@@ -69,8 +69,8 @@ func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 	return s, nil
 }
 
-func (s *DBStorage) GetUser(ctx context.Context, search, value string) (entity.User, error) {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+func (s *DBStorage) GetUser(ctx context.Context, search SearchType, value string) (entity.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	user := entity.User{}
@@ -78,12 +78,15 @@ func (s *DBStorage) GetUser(ctx context.Context, search, value string) (entity.U
 	var row *sql.Row
 
 	switch search {
-	case "id":
+	case SearchByID:
 		query := `SELECT * FROM users WHERE id = $1`
 		row = s.DB.QueryRowContext(ctx, query, value)
-	case "login":
+	case SearchByLogin:
 		query := `SELECT * FROM users WHERE login = $1`
 		row = s.DB.QueryRowContext(ctx, query, value)
+	default:
+		log.Fatalln("Failed search user by type")
+		return user, errors.New("received wrong search type")
 	}
 
 	switch err := row.Scan(&user.ID, &user.Login, &user.Password, &user.Balance, &user.Withdrawn); err {
@@ -98,7 +101,7 @@ func (s *DBStorage) GetUser(ctx context.Context, search, value string) (entity.U
 }
 
 func (s *DBStorage) AddUser(ctx context.Context, user entity.User) (int, error) {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	_, err := s.GetUser(ctx, "login", user.Login)
@@ -128,7 +131,7 @@ func (s *DBStorage) AddUser(ctx context.Context, user entity.User) (int, error) 
 }
 
 func (s *DBStorage) Withdraw(ctx context.Context, user entity.User, withdrawal entity.Withdraw) error {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	result, err := s.DB.ExecContext(ctx, `UPDATE users SET balance = balance - $1, withdrawn = withdrawn + $1 WHERE id = $2 AND balance >= $1`, withdrawal.Sum, user.ID)
@@ -161,7 +164,7 @@ func (s *DBStorage) Withdraw(ctx context.Context, user entity.User, withdrawal e
 func (s *DBStorage) WithdrawalHistory(ctx context.Context, user entity.User) ([]entity.Withdraw, error) {
 	var withdrawals []entity.Withdraw
 
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	rows, err := s.DB.QueryContext(ctx, "SELECT num, amount, processed FROM withdrawals WHERE userid = $1 ORDER BY processed DESC ", user.ID)
@@ -190,7 +193,7 @@ func (s *DBStorage) WithdrawalHistory(ctx context.Context, user entity.User) ([]
 }
 
 func (s *DBStorage) AddOrder(ctx context.Context, order entity.Order) error {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	row := s.DB.QueryRowContext(ctx, `SELECT userid FROM orders WHERE num = $1 LIMIT 1`, order.Number)
@@ -202,9 +205,8 @@ func (s *DBStorage) AddOrder(ctx context.Context, order entity.Order) error {
 	if err == nil {
 		if orderDB.UserID == order.UserID {
 			return ErrAlreadyLoaded
-		} else {
-			return ErrLoadedByOtherUser
 		}
+		return ErrLoadedByOtherUser
 	}
 
 	_, err = s.DB.ExecContext(ctx, `INSERT INTO orders (userid, num, stat, accrual, uploaded) VALUES ($1, $2, $3, $4, $5)`, order.UserID, order.Number, "NEW", 0, time.Now())
@@ -226,7 +228,7 @@ func (s *DBStorage) AddOrder(ctx context.Context, order entity.Order) error {
 func (s *DBStorage) OrdersHistory(ctx context.Context, user entity.User) ([]entity.Order, error) {
 	var orders []entity.Order
 
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	rows, err := s.DB.QueryContext(ctx, "SELECT num, stat, accrual, uploaded FROM orders WHERE userid = $1 ORDER BY uploaded DESC ", user.ID)
@@ -259,7 +261,7 @@ func (s *DBStorage) GetOrderForUpdate() (entity.Order, error) {
 }
 
 func (s *DBStorage) GetOrdersForUpdate(ctx context.Context) ([]entity.Order, error) {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	var orders []entity.Order
@@ -290,7 +292,7 @@ func (s *DBStorage) GetOrdersForUpdate(ctx context.Context) ([]entity.Order, err
 }
 
 func (s *DBStorage) UpdateOrders(ctx context.Context, orders ...entity.Order) error {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.Cfg.AwaitTime)
 	defer cancel()
 
 	tx, err := s.DB.Begin()

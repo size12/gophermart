@@ -17,12 +17,6 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 		cfg := s.GetConfig()
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			path := r.URL.Path
-			if path == "/api/user/register" || path == "/api/user/login" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			userCookie, err := r.Cookie("userCookie")
 
 			if err != nil {
@@ -43,6 +37,11 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 			//sign := cookie[8:40]
 
 			data := append(cookie[:8], cookie[40:]...)
+
+			//if err := bcrypt.CompareHashAndPassword(sign, data); err != nil {
+			//	w.WriteHeader(http.StatusUnauthorized)
+			//	return
+			//}
 
 			h := hmac.New(sha256.New, cfg.SecretKey)
 			h.Write(data)

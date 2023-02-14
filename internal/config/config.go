@@ -14,10 +14,11 @@ type Config struct {
 	AccrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	SecretKey            []byte
 	AwaitTime            time.Duration
+	WorkersCount         int
 }
 
 func GetConfig() Config {
-	cfg := Config{SecretKey: []byte("blah-blah :0)"), AwaitTime: 1 * time.Second}
+	cfg := Config{SecretKey: []byte("blah-blah :0)"), AwaitTime: 1 * time.Second, WorkersCount: 2}
 
 	flag.StringVar(&cfg.RunAddress, "a", ":8080", "Server address")
 	flag.StringVar(&cfg.DataBaseURI, "d", "", "DB connect URI")

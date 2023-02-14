@@ -17,16 +17,14 @@ import (
 )
 
 type DBStorage struct {
-	Cfg   config.Config
-	DB    *sql.DB
-	Queue Queue
+	Cfg       config.Config
+	DB        *sql.DB
+	Queue     Queue
+	StartTime time.Time
 }
 
 func NewDBStorage(cfg config.Config) (*DBStorage, error) {
-	s := &DBStorage{Cfg: cfg, Queue: NewSliceQueue()}
-
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.AwaitTime)
-	defer cancel()
+	s := &DBStorage{Cfg: cfg, Queue: NewSliceQueue(), StartTime: time.Now()}
 
 	DB, err := sql.Open("pgx", cfg.DataBaseURI)
 
@@ -43,18 +41,22 @@ func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 
 	s.DB = DB
 
-	orders, err := s.GetOrdersForUpdate(ctx)
+	// каждые 10 секунд получаем необработанные ордера (которые были до запуска, добавляем их в очередь)
+	go func() {
+		orders, err := s.GetOrdersForUpdate(context.TODO())
 
-	if err != nil {
-		log.Println("Failed get orders for update on DB start")
-		return s, err
-	}
+		if err != nil {
+			log.Println("Failed get orders for update")
+			return
+		}
 
-	err = s.Queue.PushFrontOrders(orders...)
-	if err != nil {
-		log.Println("Failed push orders to queue on DB start")
-		return s, err
-	}
+		err = s.Queue.PushFrontOrders(orders...)
+		if err != nil {
+			log.Println("Failed push orders to queue")
+			return
+		}
+		time.Sleep(10 * time.Second)
+	}()
 
 	return s, nil
 }
@@ -281,7 +283,7 @@ func (s *DBStorage) GetOrdersForUpdate(ctx context.Context) ([]entity.Order, err
 
 	var orders []entity.Order
 
-	rows, err := s.DB.QueryContext(ctx, `SELECT userid, num, stat FROM orders WHERE stat = 'NEW' OR stat = 'PROCESSING' ORDER BY uploaded ASC `)
+	rows, err := s.DB.QueryContext(ctx, `SELECT userid, num, stat FROM orders WHERE (stat = 'NEW' OR stat = 'PROCESSING') AND  uploaded < $1 ORDER BY uploaded ASC LIMIT 10`, s.StartTime)
 
 	if err != nil {
 		log.Println("can't get orders from DB for update:", err)

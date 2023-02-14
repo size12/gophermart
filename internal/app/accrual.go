@@ -82,7 +82,11 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 		},
 	}
 
-	pool.StartWorker()
+	cfg := s.GetConfig()
+
+	for i := 0; i < cfg.WorkersCount; i++ {
+		pool.StartWorker()
+	}
 
 	for {
 		job, err := s.GetOrderForUpdate()

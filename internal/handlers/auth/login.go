@@ -15,6 +15,7 @@ import (
 
 	"github.com/size12/gophermart/internal/entity"
 	"github.com/size12/gophermart/internal/storage"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func LoginHandler(s storage.Storage) http.HandlerFunc {
@@ -44,7 +45,7 @@ func LoginHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		user, err := s.GetUser(r.Context(), "login", reqUser.Login)
+		user, err := s.GetUser(r.Context(), storage.SearchByLogin, reqUser.Login)
 
 		if errors.Is(err, storage.ErrNotFound) {
 			http.Error(w, "login doesn't exists", http.StatusUnauthorized)
@@ -57,18 +58,14 @@ func LoginHandler(s storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		h := sha256.New()
-		h.Write([]byte(reqUser.Login + reqUser.Password))
-		hash := hex.EncodeToString(h.Sum(nil))
-
-		if hash != user.Password {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(reqUser.Login+reqUser.Password)); err != nil {
 			http.Error(w, "wrong credentials", http.StatusUnauthorized)
 			return
 		}
 
 		sessionID := storage.GenerateRandom()
 
-		h = hmac.New(sha256.New, cfg.SecretKey)
+		h := hmac.New(sha256.New, cfg.SecretKey)
 		h.Write([]byte(sessionID + fmt.Sprint(user.ID)))
 		userCookie := append([]byte(sessionID), h.Sum(nil)...)
 		userCookie = append(userCookie, []byte(fmt.Sprint(user.ID))...)

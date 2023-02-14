@@ -38,11 +38,6 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 
 			data := append(cookie[:8], cookie[40:]...)
 
-			//if err := bcrypt.CompareHashAndPassword(sign, data); err != nil {
-			//	w.WriteHeader(http.StatusUnauthorized)
-			//	return
-			//}
-
 			h := hmac.New(sha256.New, cfg.SecretKey)
 			h.Write(data)
 			s := h.Sum(nil)

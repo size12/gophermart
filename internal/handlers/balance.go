@@ -30,7 +30,7 @@ func GetBalanceHandler(s storage.Storage) http.HandlerFunc {
 
 		user := value.(entity.User)
 
-		user, err := s.GetUser(ctx, "id", fmt.Sprint(user.ID))
+		user, err := s.GetUser(ctx, storage.SearchByID, fmt.Sprint(user.ID))
 
 		if err != nil {
 			log.Println("Failed fetch balance:", err)

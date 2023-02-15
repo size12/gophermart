@@ -50,7 +50,12 @@ func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 			return
 		}
 
-		err = s.Queue.PushFrontOrders(orders...)
+		if len(orders) == 0 {
+			log.Println("Updated all old orders")
+			return
+		}
+
+		err = s.Queue.PushFrontOrders(orders)
 		if err != nil {
 			log.Println("Failed push orders to queue")
 			return
@@ -233,7 +238,7 @@ func (s *DBStorage) AddOrder(ctx context.Context, order entity.Order) error {
 		return err
 	}
 
-	err = s.Queue.PushBackOrders(order)
+	err = s.Queue.PushBackOrder(order)
 	if err != nil {
 		log.Println("Failed push order to queue")
 		return err
@@ -355,10 +360,10 @@ func (s *DBStorage) GetConfig() config.Config {
 	return s.Cfg
 }
 
-func (s *DBStorage) PushFrontOrders(orders ...entity.Order) error {
-	return s.Queue.PushFrontOrders(orders...)
+func (s *DBStorage) PushFrontOrders(orders []entity.Order) error {
+	return s.Queue.PushFrontOrders(orders)
 }
 
-func (s *DBStorage) PushBackOrders(orders ...entity.Order) error {
-	return s.Queue.PushBackOrders(orders...)
+func (s *DBStorage) PushBackOrder(order entity.Order) error {
+	return s.Queue.PushBackOrder(order)
 }

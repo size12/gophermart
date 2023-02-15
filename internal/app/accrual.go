@@ -42,7 +42,7 @@ func (w *WorkerPool) StartWorker() {
 			newOrderInfo, sleep, err := w.accrual.GetOrderUpdates(work)
 			if err != nil {
 				log.Println("Failed get update order info:", err)
-				err := w.storage.PushFrontOrders(work)
+				err := w.storage.PushFrontOrders([]entity.Order{work})
 				if err != nil {
 					log.Println("Failed push order in queue: ", err)
 				}
@@ -62,7 +62,7 @@ func (w *WorkerPool) StartWorker() {
 					log.Println("Failed update order: ", err)
 				}
 			} else {
-				err := w.storage.PushBackOrders(work)
+				err := w.storage.PushBackOrder(work)
 				if err != nil {
 					log.Println("Failed push order in queue: ", err)
 				}

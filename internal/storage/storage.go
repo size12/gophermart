@@ -23,8 +23,8 @@ type Storage interface {
 	GetOrderForUpdate() (entity.Order, error)
 	UpdateOrders(ctx context.Context, orders ...entity.Order) error
 	GetConfig() config.Config
-	PushFrontOrders(orders ...entity.Order) error
-	PushBackOrders(orders ...entity.Order) error
+	PushFrontOrders(orders []entity.Order) error
+	PushBackOrder(order entity.Order) error
 }
 
 func NewStorage(cfg config.Config) (Storage, error) {

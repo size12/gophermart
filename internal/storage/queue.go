@@ -7,8 +7,8 @@ import (
 )
 
 type Queue interface {
-	PushFrontOrders(orders ...entity.Order) error
-	PushBackOrders(orders ...entity.Order) error
+	PushFrontOrders(orders []entity.Order) error
+	PushBackOrder(order entity.Order) error
 	GetOrder() (entity.Order, error)
 }
 
@@ -23,17 +23,17 @@ func NewSliceQueue() *SliceQueue {
 	}
 }
 
-func (q *SliceQueue) PushFrontOrders(orders ...entity.Order) error {
+func (q *SliceQueue) PushFrontOrders(orders []entity.Order) error {
 	q.Lock()
 	defer q.Unlock()
 	q.Orders = append(orders, q.Orders...)
 	return nil
 }
 
-func (q *SliceQueue) PushBackOrders(orders ...entity.Order) error {
+func (q *SliceQueue) PushBackOrder(order entity.Order) error {
 	q.Lock()
 	defer q.Unlock()
-	q.Orders = append(q.Orders, orders...)
+	q.Orders = append(q.Orders, order)
 	return nil
 }
 

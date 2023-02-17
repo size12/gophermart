@@ -27,12 +27,10 @@ type Storage interface {
 	PushBackOrder(order entity.Order) error
 }
 
-func NewStorage(cfg config.Config) (Storage, error) {
-	s, err := NewDBStorage(cfg)
+func NewStorage(ctx context.Context, cfg config.Config) (Storage, error) {
+	s, err := NewDBStorage(ctx, cfg)
 	return s, err
 }
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func GenerateRandom() string {
 	randomBytes := make([]byte, 32)

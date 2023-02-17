@@ -9,20 +9,14 @@ import (
 	"github.com/size12/gophermart/internal/storage"
 )
 
-func WithdrawalHistoryHandler(s storage.Storage) http.HandlerFunc {
+func HistoryHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		value := r.Context().Value(entity.CtxUserKey{})
-
-		switch value.(type) {
-		case entity.User:
-			break
-		default:
-			log.Println("Wrong value type in context")
+		user, ok := r.Context().Value(entity.CtxUserKey{}).(entity.User)
+		if !ok {
+			log.Printf("Wrong value type in context: %v\n", user)
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
-
-		user := value.(entity.User)
 
 		withdrawals, err := s.WithdrawalHistory(r.Context(), user)
 		if err != nil {

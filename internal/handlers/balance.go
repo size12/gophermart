@@ -17,18 +17,12 @@ func GetBalanceHandler(s storage.Storage) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 		defer cancel()
 
-		value := r.Context().Value(entity.CtxUserKey{})
-
-		switch value.(type) {
-		case entity.User:
-			break
-		default:
-			log.Println("Wrong value type in context")
+		user, ok := r.Context().Value(entity.CtxUserKey{}).(entity.User)
+		if !ok {
+			log.Printf("Wrong value type in context: %v\n", user)
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
-
-		user := value.(entity.User)
 
 		user, err := s.GetUser(ctx, storage.SearchByID, fmt.Sprint(user.ID))
 

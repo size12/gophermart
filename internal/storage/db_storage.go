@@ -23,7 +23,7 @@ type DBStorage struct {
 	StartTime time.Time
 }
 
-func NewDBStorage(cfg config.Config) (*DBStorage, error) {
+func NewDBStorage(ctx context.Context, cfg config.Config) (*DBStorage, error) {
 	s := &DBStorage{Cfg: cfg, Queue: NewSliceQueue(), StartTime: time.Now()}
 
 	DB, err := sql.Open("pgx", cfg.DataBaseURI)
@@ -43,31 +43,40 @@ func NewDBStorage(cfg config.Config) (*DBStorage, error) {
 
 	// каждые 10 секунд получаем необработанные ордера (которые были до запуска, добавляем их в очередь)
 	go func() {
-		orders, err := s.GetOrdersForUpdate(context.TODO())
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Shutdown update old orders goroutine")
+				return
+			default:
+				orders, err := s.GetOrdersForUpdate(ctx)
 
-		if err != nil {
-			log.Println("Failed get orders for update")
-			return
-		}
+				if err != nil {
+					log.Println("Failed get orders for update")
+					return
+				}
 
-		if len(orders) == 0 {
-			log.Println("Updated all old orders")
-			return
-		}
+				if len(orders) == 0 {
+					log.Println("Updated all old orders")
+					return
+				}
 
-		err = s.Queue.PushFrontOrders(orders)
-		if err != nil {
-			log.Println("Failed push orders to queue")
-			return
+				err = s.Queue.PushFrontOrders(orders)
+				if err != nil {
+					log.Println("Failed push orders to queue")
+					return
+				}
+				time.Sleep(10 * time.Second)
+			}
+
 		}
-		time.Sleep(10 * time.Second)
 	}()
 
 	return s, nil
 }
 
-func MigrateUP(DB *sql.DB) error {
-	driver, err := postgres.WithInstance(DB, &postgres.Config{})
+func MigrateUP(db *sql.DB) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		log.Printf("Failed create postgres instance: %v\n", err)
 	}

@@ -25,48 +25,55 @@ type WorkerPool struct {
 	timer   Timer
 }
 
-func (w *WorkerPool) StartWorker() {
+func (w *WorkerPool) StartWorker(ctx context.Context) {
 	go func() {
 		for {
-			work := <-w.jobs
+			select {
+			case work := <-w.jobs:
+				{
+					w.timer.RLock()
+					timer := w.timer.Time
+					t := time.Until(timer)
+					w.timer.RUnlock()
 
-			w.timer.RLock()
-			timer := w.timer.Time
-			t := time.Until(timer)
-			w.timer.RUnlock()
+					if t.Milliseconds() > 0 {
+						time.Sleep(t)
+					}
 
-			if t.Milliseconds() > 0 {
-				time.Sleep(t)
+					newOrderInfo, sleep, err := w.accrual.GetOrderUpdates(work)
+					if err != nil {
+						log.Println("Failed get update order info:", err)
+						err := w.storage.PushFrontOrders([]entity.Order{work})
+						if err != nil {
+							log.Println("Failed push order in queue: ", err)
+						}
+						if sleep > 0 {
+							w.timer.Lock()
+							w.timer.Time = time.Now().Add(time.Duration(sleep) * time.Second)
+							w.timer.Unlock()
+						}
+						continue
+					}
+
+					if newOrderInfo.Status != work.Status {
+						work.Accrual = newOrderInfo.Accrual
+						work.Status = newOrderInfo.Status
+						err := w.storage.UpdateOrders(context.Background(), work)
+						if err != nil {
+							log.Println("Failed update order: ", err)
+						}
+					} else {
+						err := w.storage.PushBackOrder(work)
+						if err != nil {
+							log.Println("Failed push order in queue: ", err)
+						}
+					}
+				}
+			case <-ctx.Done():
+				log.Println("Shutdown worker")
+				return
 			}
 
-			newOrderInfo, sleep, err := w.accrual.GetOrderUpdates(work)
-			if err != nil {
-				log.Println("Failed get update order info:", err)
-				err := w.storage.PushFrontOrders([]entity.Order{work})
-				if err != nil {
-					log.Println("Failed push order in queue: ", err)
-				}
-				if sleep > 0 {
-					w.timer.Lock()
-					w.timer.Time = time.Now().Add(time.Duration(sleep) * time.Second)
-					w.timer.Unlock()
-				}
-				continue
-			}
-
-			if newOrderInfo.Status != work.Status {
-				work.Accrual = newOrderInfo.Accrual
-				work.Status = newOrderInfo.Status
-				err := w.storage.UpdateOrders(context.Background(), work)
-				if err != nil {
-					log.Println("Failed update order: ", err)
-				}
-			} else {
-				err := w.storage.PushBackOrder(work)
-				if err != nil {
-					log.Println("Failed push order in queue: ", err)
-				}
-			}
 		}
 	}()
 }
@@ -85,7 +92,7 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 	cfg := s.GetConfig()
 
 	for i := 0; i < cfg.WorkersCount; i++ {
-		pool.StartWorker()
+		pool.StartWorker(ctx)
 	}
 
 	for {

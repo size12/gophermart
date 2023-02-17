@@ -22,8 +22,11 @@ func NewApp(cfg config.Config) App {
 }
 
 func (app *App) Run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	r := chi.NewRouter()
-	s, err := storage.NewStorage(app.Cfg)
+	s, err := storage.NewStorage(ctx, app.Cfg)
 	if err != nil {
 		log.Fatalln("Failed open storage:", err)
 	}
@@ -45,9 +48,6 @@ func (app *App) Run() error {
 
 		r.Get("/api/user/balance", handlers.GetBalanceHandler(s))
 	})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	go NewWorkerPool(ctx, s, accrualsystem.NewAccrualSystem(app.Cfg))
 

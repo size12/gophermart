@@ -18,15 +18,15 @@ func NewRegisterHandler(s storage.Storage) http.HandlerFunc {
 }
 
 func NewWithdrawHandler(s storage.Storage) http.HandlerFunc {
-	return withdraw.WithdrawHandler(s)
+	return withdraw.Handler(s)
 }
 
 func NewWithdrawalHistoryHandler(s storage.Storage) http.HandlerFunc {
-	return withdraw.WithdrawalHistoryHandler(s)
+	return withdraw.HistoryHandler(s)
 }
 
 func NewOrderHandler(s storage.Storage) http.HandlerFunc {
-	return orders.OrderHandler(s)
+	return orders.Handler(s)
 }
 
 func NewOrdersHistoryHandler(s storage.Storage) http.HandlerFunc {

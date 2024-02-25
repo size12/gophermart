@@ -11,7 +11,6 @@ import (
 
 func HistoryHandler(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		user, ok := r.Context().Value(entity.CtxUserKey{}).(entity.User)
 		if !ok {
 			log.Printf("Wrong value type in context: %v\n", user)

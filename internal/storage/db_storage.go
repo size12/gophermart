@@ -27,7 +27,6 @@ func NewDBStorage(ctx context.Context, cfg config.Config) (*DBStorage, error) {
 	s := &DBStorage{Cfg: cfg, Queue: NewSliceQueue(), StartTime: time.Now()}
 
 	DB, err := sql.Open("pgx", cfg.DataBaseURI)
-
 	if err != nil {
 		log.Fatalln("Failed open DB on startup: ", err)
 		return s, err
@@ -50,7 +49,6 @@ func NewDBStorage(ctx context.Context, cfg config.Config) (*DBStorage, error) {
 				return
 			default:
 				orders, err := s.GetOrdersForUpdate(ctx)
-
 				if err != nil {
 					log.Println("Failed get orders for update")
 					return
@@ -68,7 +66,6 @@ func NewDBStorage(ctx context.Context, cfg config.Config) (*DBStorage, error) {
 				}
 				time.Sleep(10 * time.Second)
 			}
-
 		}
 	}()
 
@@ -77,6 +74,7 @@ func NewDBStorage(ctx context.Context, cfg config.Config) (*DBStorage, error) {
 
 func MigrateUP(db *sql.DB) error {
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
+
 	if err != nil {
 		log.Printf("Failed create postgres instance: %v\n", err)
 	}
@@ -90,7 +88,7 @@ func MigrateUP(db *sql.DB) error {
 	}
 
 	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal("Failed migrate: ", err)
 		return err
 	}
@@ -166,7 +164,6 @@ func (s *DBStorage) Withdraw(ctx context.Context, user entity.User, withdrawal e
 	defer cancel()
 
 	result, err := s.DB.ExecContext(ctx, `UPDATE users SET balance = balance - $1, withdrawn = withdrawn + $1 WHERE id = $2 AND balance >= $1`, withdrawal.Sum, user.ID)
-
 	if err != nil {
 		log.Println("Failed withdraw:", err)
 		return err
@@ -199,7 +196,6 @@ func (s *DBStorage) WithdrawalHistory(ctx context.Context, user entity.User) ([]
 	defer cancel()
 
 	rows, err := s.DB.QueryContext(ctx, "SELECT num, amount, processed FROM withdrawals WHERE userid = $1 ORDER BY processed DESC ", user.ID)
-
 	if err != nil {
 		log.Println("Can't get withdrawals history from DB:", err)
 		return withdrawals, err
@@ -263,7 +259,6 @@ func (s *DBStorage) OrdersHistory(ctx context.Context, user entity.User) ([]enti
 	defer cancel()
 
 	rows, err := s.DB.QueryContext(ctx, "SELECT num, stat, accrual, uploaded FROM orders WHERE userid = $1 ORDER BY uploaded DESC ", user.ID)
-
 	if err != nil {
 		log.Println("Can't get withdrawals history from DB:", err)
 		return orders, err
@@ -298,7 +293,6 @@ func (s *DBStorage) GetOrdersForUpdate(ctx context.Context) ([]entity.Order, err
 	var orders []entity.Order
 
 	rows, err := s.DB.QueryContext(ctx, `SELECT userid, num, stat FROM orders WHERE (stat = 'NEW' OR stat = 'PROCESSING') AND  uploaded < $1 ORDER BY uploaded ASC LIMIT 10`, s.StartTime)
-
 	if err != nil {
 		log.Println("can't get orders from DB for update:", err)
 		return orders, err

@@ -25,7 +25,6 @@ func GetBalanceHandler(s storage.Storage) http.HandlerFunc {
 		}
 
 		user, err := s.GetUser(ctx, storage.SearchByID, fmt.Sprint(user.ID))
-
 		if err != nil {
 			log.Println("Failed fetch balance:", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)
@@ -38,7 +37,6 @@ func GetBalanceHandler(s storage.Storage) http.HandlerFunc {
 		}
 
 		b, err := json.Marshal(balance)
-
 		if err != nil {
 			log.Println("Failed marshalling balance:", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)

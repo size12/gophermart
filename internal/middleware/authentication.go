@@ -16,9 +16,7 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 	return func(next http.Handler) http.Handler {
 		cfg := s.GetConfig()
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			userCookie, err := r.Cookie("userCookie")
-
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
@@ -27,14 +25,13 @@ func RequireAuthentication(s storage.Storage) func(next http.Handler) http.Handl
 			user := entity.User{}
 
 			cookie, err := hex.DecodeString(userCookie.Value)
-
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
 			sign := append([]byte{cookie[8]}, cookie[9:40]...)
-			//sign := cookie[8:40]
+			// sign := cookie[8:40]
 
 			data := append(cookie[:8], cookie[40:]...)
 

@@ -73,7 +73,6 @@ func (w *WorkerPool) StartWorker(ctx context.Context) {
 				log.Println("Shutdown worker")
 				return
 			}
-
 		}
 	}()
 }
@@ -116,5 +115,4 @@ func NewWorkerPool(ctx context.Context, s storage.Storage, accrual accrualsystem
 			return
 		}
 	}
-
 }

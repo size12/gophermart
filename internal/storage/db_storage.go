@@ -74,6 +74,7 @@ func NewDBStorage(ctx context.Context, cfg config.Config) (*DBStorage, error) {
 
 func MigrateUP(db *sql.DB) error {
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
+
 	if err != nil {
 		log.Printf("Failed create postgres instance: %v\n", err)
 	}
@@ -87,7 +88,7 @@ func MigrateUP(db *sql.DB) error {
 	}
 
 	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal("Failed migrate: ", err)
 		return err
 	}

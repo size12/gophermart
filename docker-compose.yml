@@ -1,0 +1,25 @@
+services:
+  accrual:
+    build: cmd/accrual
+    command: ./accrual_linux_amd64 -a ":8088"
+    ports:
+      - "8088:8088"
+
+  postgres:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "5432:5432"
+
+  gophermart:
+    build: .
+    command: ./main
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - accrual
